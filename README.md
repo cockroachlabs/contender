@@ -44,9 +44,11 @@ There is a [prometheus configuration](./assets/prometheus.yaml) to collect metri
 [installed Prometheus](https://prometheus.io/docs/prometheus/latest/installation/), it will be as
 simple as running `prometheus --config.file=prometheus.yaml`.
 
-The [Grafana dashboard](./assets/dashboard.json) can be directly imported as shown here:
+Finally, Install [Grafana](https://grafana.com/docs/grafana/latest/installation/) and import the [Grafana dashboard](./assets/dashboard.json) as shown here:
 
 ![import screenshot](./assets/import.png).
+
+You will have to import the datasource for Prometheus and possibly refresh it from within each graph panel.
 
 ## Experiments to run
 
