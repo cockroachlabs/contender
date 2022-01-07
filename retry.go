@@ -23,23 +23,27 @@ import (
 func retry(ctx context.Context, fn func(context.Context) error) error {
 	for {
 		err := fn(ctx)
-		if err == nil {
-			return nil
-		}
-
-		if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) {
-			pgerrorCount.WithLabelValues(pgErr.Code).Inc()
-
-			switch pgErr.Code {
-			default:
-				return err
-			case "40001": // Serialization Failure
-			case "40003": // Statement Completion Unknown
-			case "08003": // Connection Does Not Exist
-			case "08006": // Connection Failure
-			}
-		} else {
+		if !isRetryable(err) {
 			return err
 		}
 	}
+}
+
+// isRetryable checks the embedded error code of a postgres exception to
+// determine if it should be retried. A nil error is not retryable.
+func isRetryable(err error) bool {
+	if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) {
+		pgerrorCount.WithLabelValues(pgErr.Code).Inc()
+
+		switch pgErr.Code {
+		case
+			"40001", // Serialization Failure
+			"40003", // Statement Completion Unknown
+			"08003", // Connection Does Not Exist
+			"08006": // Connection Failure
+			return true
+		}
+	}
+
+	return false
 }

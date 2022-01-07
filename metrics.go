@@ -50,6 +50,11 @@ var (
 		Name: "pgerror_codes_total",
 		Help: "the number of postgres errors",
 	}, []string{"code"})
+	restartCount = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "worker_save_point_restarts_total",
+		Help:    "the number of savepoint restarts within a single worker loop",
+		Buckets: attemptBuckets,
+	})
 	workerLatency = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name:    "worker_overall_latency_seconds",
 		Help:    "the overall worker latency for successful requests",
@@ -66,6 +71,11 @@ func metricsServer(ctx context.Context, db *pgxpool.Pool) error {
 	info.WithLabelValues("think_time").Set(ThinkTime.Seconds())
 	info.WithLabelValues("unique_ids").Set(float64(*UniqueIds))
 	if g := info.WithLabelValues("select_for_update"); *UseForUpdate {
+		g.Set(1)
+	} else {
+		g.Set(0)
+	}
+	if g := info.WithLabelValues("save_point"); *UseSavePoint {
 		g.Set(1)
 	} else {
 		g.Set(0)

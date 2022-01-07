@@ -30,9 +30,9 @@
       "color": {
         "cardColor": "#b4ff00",
         "colorScale": "sqrt",
-        "colorScheme": "interpolateRdYlGn",
+        "colorScheme": "interpolateTurbo",
         "exponent": 0.5,
-        "mode": "spectrum"
+        "mode": "opacity"
       },
       "dataFormat": "tsbuckets",
       "gridPos": {
@@ -88,7 +88,7 @@
         "colorScale": "sqrt",
         "colorScheme": "interpolateOranges",
         "exponent": 0.5,
-        "mode": "spectrum"
+        "mode": "opacity"
       },
       "dataFormat": "tsbuckets",
       "description": "",
@@ -134,78 +134,33 @@
         "logBase": 1,
         "show": true
       },
-      "yBucketBound": "auto"
+      "yBucketBound": "upper"
     },
     {
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "reqps"
-        },
-        "overrides": []
+      "cards": {},
+      "color": {
+        "cardColor": "#b4ff00",
+        "colorScale": "sqrt",
+        "colorScheme": "interpolateOranges",
+        "exponent": 0.5,
+        "mode": "opacity"
       },
+      "dataFormat": "tsbuckets",
+      "description": "",
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 8
       },
-      "id": 4,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single"
-        }
+      "heatmap": {},
+      "hideZeroBuckets": true,
+      "highlightCards": true,
+      "id": 15,
+      "legend": {
+        "show": false
       },
+      "reverseYBuckets": false,
       "targets": [
         {
           "datasource": {
@@ -213,16 +168,28 @@
             "uid": "6vz-lET7z"
           },
           "exemplar": false,
-          "expr": "sum (rate(worker_overall_latency_seconds_count{}[$__rate_interval]))",
-          "format": "time_series",
-          "instant": false,
+          "expr": "sum by (le) (irate(worker_save_point_restarts_total_bucket{}[$__rate_interval]))",
+          "format": "heatmap",
           "interval": "",
-          "legendFormat": "Loop Rate",
+          "legendFormat": "{{le}}",
           "refId": "A"
         }
       ],
-      "title": "Worker Loop Rate",
-      "type": "timeseries"
+      "title": "Number of ROLLBACK TO SAVEPOINT",
+      "tooltip": {
+        "show": true,
+        "showHistogram": false
+      },
+      "type": "heatmap",
+      "xAxis": {
+        "show": true
+      },
+      "yAxis": {
+        "format": "short",
+        "logBase": 1,
+        "show": true
+      },
+      "yBucketBound": "upper"
     },
     {
       "fieldConfig": {
@@ -326,6 +293,36 @@
                 "value": "Workers per unique id"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "save_point"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0": {
+                        "index": 0,
+                        "text": "none"
+                      },
+                      "1": {
+                        "index": 1,
+                        "text": "cockroach_restart"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "displayName",
+                "value": "SAVEPOINT"
+              }
+            ]
           }
         ]
       },
@@ -367,6 +364,94 @@
       ],
       "title": "Configuration",
       "type": "stat"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "6vz-lET7z"
+          },
+          "exemplar": false,
+          "expr": "sum (irate(worker_overall_latency_seconds_count{}[$__rate_interval]))",
+          "format": "time_series",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Loop Rate",
+          "refId": "A"
+        }
+      ],
+      "title": "Worker Loop Rate",
+      "type": "timeseries"
     },
     {
       "fieldConfig": {
@@ -438,6 +523,22 @@
       "type": "stat"
     },
     {
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 12,
+      "options": {
+        "content": "This workload operates on a key-value table with some number of concurrent workers.\n\n```sql\nCREATE TABLE IF NOT EXISTS contend (\n\tid UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),\n\tvalue INT NOT NULL DEFAULT 0\n);\n\nBEGIN;\nSELECT value FROM contend WHERE id = $1 [ FOR UPDATE ];\nUPDATE contend SET value = $1 WHERE id = $2;\nCOMMIT;\n```\n",
+        "mode": "markdown"
+      },
+      "pluginVersion": "8.4.0-pre",
+      "title": "Information",
+      "type": "text"
+    },
+    {
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -494,7 +595,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 17
+        "y": 25
       },
       "id": 8,
       "options": {
@@ -515,7 +616,7 @@
             "uid": "6vz-lET7z"
           },
           "exemplar": true,
-          "expr": "sum by (code) (rate(pgerror_codes_total[$__rate_interval]))",
+          "expr": "sum by (code) (irate(pgerror_codes_total[$__rate_interval]))",
           "interval": "",
           "legendFormat": "{{code}}",
           "refId": "A"
@@ -523,22 +624,6 @@
       ],
       "title": "Retryable Error Rate",
       "type": "timeseries"
-    },
-    {
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 25
-      },
-      "id": 12,
-      "options": {
-        "content": "This workload operates on a key-value table with some number of concurrent workers.\n\n```sql\nCREATE TABLE IF NOT EXISTS contend (\n\tid UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),\n\tvalue INT NOT NULL DEFAULT 0\n);\n\nBEGIN;\nSELECT value FROM contend WHERE id = $1 [ FOR UPDATE ];\nUPDATE contend SET value = $1 WHERE id = $2;\nCOMMIT;\n```\n",
-        "mode": "markdown"
-      },
-      "pluginVersion": "8.4.0-pre",
-      "title": "Information",
-      "type": "text"
     }
   ],
   "refresh": "5s",
@@ -556,6 +641,6 @@
   "timezone": "",
   "title": "Contender",
   "uid": "0Vk1xYA7k",
-  "version": 2,
+  "version": 4,
   "weekStart": ""
 }

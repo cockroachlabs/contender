@@ -58,6 +58,9 @@ You will have to import the datasource for Prometheus and possibly refresh it fr
 * Increase to 10 ids with 10 workers each. This should definitely create contention.
 * Enable `SELECT FOR UPDATE`. This will create explicit locking within CockroachDB which will cut
   down on the number of retries needed and will improve throughput.
+* Enable the use of `SAVEPOINT cockroach_restart`. This wil use
+  an [advanced retry technique](https://www.cockroachlabs.com/docs/stable/advanced-client-side-transaction-retries.html#retry-savepoints)
+  to raise the priority of the transaction when a conflict occurs.
 
 ## Flags
 
@@ -70,6 +73,8 @@ Usage of ./contender:
     	a bind string for the metrics server (default ":8181")
   -maxConns int
     	the maximum number of open database connections (default 10000)
+  -savePoint
+    	if true, use advanced retry approach to increase TX priorities
   -selectForUpdate
     	if true, use SELECT FOR UPDATE
   -thinkTime duration

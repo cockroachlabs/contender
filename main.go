@@ -57,6 +57,10 @@ var (
 		"selectForUpdate",
 		false,
 		"if true, use SELECT FOR UPDATE")
+	UseSavePoint = flag.Bool(
+		"savePoint",
+		false,
+		"if true, use advanced retry approach to increase TX priorities")
 	WorkersPerId = flag.Int(
 		"workersPerId",
 		1,

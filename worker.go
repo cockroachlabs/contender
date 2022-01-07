@@ -22,6 +22,7 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
+	"github.com/jackc/pgtype/pgxtype"
 )
 
 type worker struct {
@@ -30,6 +31,7 @@ type worker struct {
 	id             uuid.UUID
 	thinkTime      time.Duration
 	tolerateErrors bool
+	useSavePoint   bool
 }
 
 func newWorker(ctx context.Context, db *pgxpool.Pool) (*worker, error) {
@@ -46,6 +48,7 @@ func newWorker(ctx context.Context, db *pgxpool.Pool) (*worker, error) {
 		id:             id,
 		thinkTime:      *ThinkTime,
 		tolerateErrors: *TolerateErrors,
+		useSavePoint:   *UseSavePoint,
 	}, nil
 }
 
@@ -82,24 +85,12 @@ func (w *worker) runOneIteration(ctx context.Context) error {
 		}
 		defer tx.Rollback(ctx)
 
-		q := "SELECT value FROM contend WHERE id = $1"
-		if w.forUpdate {
-			q += " FOR UPDATE"
-		}
-
-		var current int
-		if err := tx.QueryRow(ctx, q, w.id).Scan(&current); err != nil {
-			return errors.Wrapf(err, "select current value %s", w.id)
-		}
-
-		time.Sleep(w.thinkTime)
-
-		next := rand.Int()
-		if _, err := tx.Exec(ctx,
-			"UPDATE contend SET value = $1 WHERE id = $2",
-			next, w.id,
-		); err != nil {
-			return errors.Wrapf(err, "updating %s", w.id)
+		if w.useSavePoint {
+			if err := w.savepointLoop(ctx, tx); err != nil {
+				return err
+			}
+		} else if err := w.doTransaction(ctx, tx); err != nil {
+			return err
 		}
 
 		if err := tx.Commit(ctx); err != nil {
@@ -107,4 +98,57 @@ func (w *worker) runOneIteration(ctx context.Context) error {
 		}
 		return nil
 	})
+}
+
+// https://www.cockroachlabs.com/docs/stable/advanced-client-side-transaction-retries.html#retry-savepoints
+func (w *worker) savepointLoop(ctx context.Context, tx pgxtype.Querier) error {
+	if _, err := tx.Exec(ctx, "SAVEPOINT cockroach_restart"); err != nil {
+		return errors.Wrapf(err, "create savepoint %s", w.id)
+	}
+
+	attempt := func() error {
+		if err := w.doTransaction(ctx, tx); err != nil {
+			return err
+		}
+
+		_, err := tx.Exec(ctx, "RELEASE SAVEPOINT cockroach_restart")
+		return errors.Wrapf(err, "releasing savepoint %s", w.id)
+	}
+	restarts := 0
+	defer func() {
+		restartCount.Observe(float64(restarts))
+	}()
+
+	// We have an inner loop to set up the savepoint
+	for {
+		err := attempt()
+		if isRetryable(err) {
+			if _, err := tx.Exec(ctx, "ROLLBACK TO SAVEPOINT cockroach_restart"); err != nil {
+				return errors.Wrapf(err, "rollback to savepoint %s", w.id)
+			}
+			restarts++
+			continue
+		}
+		return err
+	}
+}
+
+func (w *worker) doTransaction(ctx context.Context, tx pgxtype.Querier) error {
+	q := "SELECT value FROM contend WHERE id = $1"
+	if w.forUpdate {
+		q += " FOR UPDATE"
+	}
+
+	var current int
+	if err := tx.QueryRow(ctx, q, w.id).Scan(&current); err != nil {
+		return errors.Wrapf(err, "select current value %s", w.id)
+	}
+
+	time.Sleep(w.thinkTime)
+
+	next := rand.Int()
+	_, err := tx.Exec(ctx,
+		"UPDATE contend SET value = $1 WHERE id = $2",
+		next, w.id)
+	return errors.Wrapf(err, "updating %s", w.id)
 }
